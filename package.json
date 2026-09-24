@@ -1,0 +1,36 @@
+{
+  "name": "labdox-letter-generator",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/local-server.mjs",
+    "db:local": "wrangler d1 migrations apply labdox-letter-generator --local",
+    "setup:local": "npm run db:local",
+    "check": "node scripts/check.mjs",
+    "db:create": "wrangler d1 create labdox-letter-generator",
+    "db:remote": "wrangler d1 migrations apply labdox-letter-generator --remote",
+    "r2:create": "wrangler r2 bucket create labdox-letter-files",
+    "deploy": "wrangler deploy",
+    "logs": "wrangler tail",
+    "start": "node scripts/local-server.mjs",
+    "dev:cloudflare": "wrangler dev --local --port 8787",
+    "test:unit": "node --test tests/security.test.js",
+    "test:workflow": "node --test tests/workflow.test.js",
+    "deploy:check": "wrangler deploy --dry-run",
+    "build": "node scripts/build.mjs",
+    "test:worker": "npm run build && node scripts/test-worker.mjs"
+  },
+  "dependencies": {
+    "sanitize-html": "^2.17.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "esbuild-wasm": "^0.28.2",
+    "wrangler": "^4.38.0",
+    "miniflare": "5.20260921.0-alpha"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}

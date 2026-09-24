@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Internal Labdox tool for creating and issuing approved letters.">
+  <meta property="og:title" content="Labdox Letter Generator">
+  <meta property="og:description" content="Create, issue, and retain professional letters.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Labdox Letter Generator">
+  <meta name="twitter:description" content="Create, issue, and retain professional letters.">
+  <title>Labdox Letter Generator</title>
+  <link rel="icon" href="/labdox-logo.jpeg" type="image/jpeg">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <section id="login-view" class="login-shell">
+    <div class="login-brand"><div class="brand-mark"><img src="/labdox-logo.jpeg" alt=""></div><span>LABDOX</span></div>
+    <form id="login-form" class="login-card">
+      <p class="eyebrow">INTERNAL WORKSPACE</p>
+      <h1>Letter Generator</h1>
+      <p class="muted">Create approved letters, issue secure PDFs, and keep every version traceable.</p>
+      <label>Email<input id="login-email" type="email" autocomplete="username" required></label>
+      <label>Password<input id="login-password" type="password" autocomplete="current-password" required></label>
+      <p id="login-error" class="form-error" hidden></p>
+      <button class="btn primary wide" type="submit">Sign in</button>
+
+    </form>
+  </section>
+
+  <div id="app" class="app-shell" hidden>
+    <aside class="sidebar">
+      <div class="logo"><div class="brand-mark"><img src="/labdox-logo.jpeg" alt=""></div><div><strong>LABDOX</strong><span>Letter Generator</span></div></div>
+      <nav aria-label="Main navigation">
+        <button data-route="dashboard" class="nav-item active"><span>⌂</span> Overview</button>
+        <button data-route="editor" class="nav-item"><span>＋</span> Create letter</button>
+        <button data-route="history" class="nav-item"><span>▤</span> Documents</button>
+        <button data-route="templates" class="nav-item admin-only"><span>◇</span> Templates</button>
+        <button data-route="users" class="nav-item admin-only"><span>☺</span> Users</button>
+      </nav>
+      <div class="user-card"><div class="avatar" id="user-initials">LS</div><div><strong id="user-name">User</strong><span id="user-role">Issuer</span></div><button id="open-password" title="Change password" aria-label="Change password">⚙</button><button id="logout" title="Sign out" aria-label="Sign out">↗</button></div>
+    </aside>
+    <main class="main">
+      <header class="topbar"><button id="mobile-menu" aria-label="Open navigation">☰</button><div><p class="breadcrumb">Labdox / <span id="crumb">Overview</span></p><h2 id="page-title">Overview</h2></div><button class="btn primary" data-route="editor">＋ Create new letter</button></header>
+
+      <section id="dashboard-page" class="page">
+        <div class="welcome"><div><p class="eyebrow">DOCUMENT OPERATIONS</p><h1>Good work starts with<br>a clear document.</h1><p>Draft, review, and issue letters from one controlled workspace.</p></div><button class="btn light" data-route="editor">Create a letter <span>→</span></button></div>
+        <div class="stats" id="stats"></div>
+        <div class="panel"><div class="panel-head"><div><h3>Recent documents</h3><p>Your latest drafts and issued letters</p></div><button class="text-btn" data-route="history">View all →</button></div><div id="recent-list" class="recent-list"></div></div>
+      </section>
+
+      <section id="editor-page" class="page" hidden>
+        <div class="editor-heading"><div><p class="eyebrow">LETTER WORKSPACE</p><h1 id="editor-title">Create a new letter</h1></div><div class="action-row"><button id="save-draft" class="btn secondary">Save draft</button><button id="finalize" class="btn dark">Finalise</button><button id="generate-pdf" class="btn primary">Generate PDF</button></div></div>
+        <div class="editor-grid">
+          <form id="letter-form" class="form-panel">
+            <div class="field-grid"><label>Document type<select id="template-id" required></select></label><label>Date<input id="letter-date" type="date" required></label></div>
+            <label>Recipient name<input id="recipient-name" maxlength="160" placeholder="e.g. Aditi Rao" required></label>
+            <div class="field-grid"><label>Designation <span class="optional">Optional</span><input id="designation" maxlength="160" placeholder="e.g. Product Design Intern"></label><label>Issued by<input id="signatory-display" value="HR Team — People Operations" disabled><select id="signatory-id" hidden required></select></label></div>
+            <label>Subject <span class="optional">Optional</span><input id="subject" maxlength="300" placeholder="e.g. Offer of Internship"></label>
+            <label>Letter content</label>
+            <div class="toolbar" role="toolbar" aria-label="Text formatting">
+              <button type="button" data-command="bold" title="Bold"><b>B</b></button><button type="button" data-command="italic" title="Italic"><i>I</i></button><button type="button" data-command="underline" title="Underline"><u>U</u></button><span></span>
+              <button type="button" data-command="insertUnorderedList" title="Bulleted list">• List</button><button type="button" data-command="insertOrderedList" title="Numbered list">1. List</button><span></span>
+              <button type="button" data-command="justifyLeft" title="Align left">≡</button><button type="button" data-command="justifyCenter" title="Align center">≣</button><button type="button" id="add-link" title="Add link">↗ Link</button>
+            </div>
+            <div id="content-editor" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true"></div>
+            <p class="variable-help">Variables: {{recipient_name}}, {{designation}}, {{date}}, {{document_number}}, {{signatory_name}}</p>
+          </form>
+          <section class="preview-panel"><div class="preview-head"><div><strong>Live preview</strong><span id="page-count">1 page</span></div><div><button id="zoom-out" aria-label="Zoom out">−</button><span id="zoom-label">72%</span><button id="zoom-in" aria-label="Zoom in">＋</button></div></div><div id="preview-stage" class="preview-stage"><div id="pages" class="pages"><iframe id="preview-frame" title="Letter preview" sandbox="allow-scripts"></iframe></div></div></section>
+        </div>
+      </section>
+
+      <section id="history-page" class="page" hidden>
+        <div class="page-heading"><div><p class="eyebrow">DOCUMENT REGISTER</p><h1>Documents</h1><p>Search drafts and issued letters, then continue the right action.</p></div></div>
+        <div class="filters"><label class="search"><span>⌕</span><input id="search-docs" placeholder="Search recipient or document number"></label><select id="filter-type"><option value="">All types</option></select><select id="filter-status"><option value="">All statuses</option><option>draft</option><option>finalised</option><option>archived</option></select><input id="filter-from" type="date" title="From date"><input id="filter-to" type="date" title="To date"></div>
+        <div class="table-wrap"><table><thead><tr><th>Date</th><th>Document no.</th><th>Recipient</th><th>Type</th><th>Created by</th><th>Status</th><th></th></tr></thead><tbody id="documents-table"></tbody></table><button id="more-documents" class="btn secondary" hidden>Load more</button><div id="documents-empty" class="empty" hidden>No documents match these filters.</div></div>
+      </section>
+
+      <section id="templates-page" class="page" hidden>
+        <div class="page-heading split"><div><p class="eyebrow">ADMINISTRATION</p><h1>Letter templates</h1><p>Add a document type by creating a template. No code changes required.</p></div><button id="new-template" class="btn primary">＋ New template</button></div>
+        <div class="panel asset-panel"><h3>Brand images</h3><p>Upload a PNG or JPEG logo or letterhead image (up to 2 MB). Use its image tag in your template.</p><input id="asset-upload" type="file" accept="image/png,image/jpeg"><div id="asset-list"></div></div><div class="template-layout"><div id="template-list" class="template-list"></div><form id="template-form" class="template-form" hidden><input id="tpl-id" type="hidden"><div class="panel-head"><div><h3 id="tpl-form-title">New template</h3><p>Define content, numbering, and page structure.</p></div><button type="button" id="close-template">×</button></div><div class="field-grid"><label>Name<input id="tpl-name" required></label><label>Document type<input id="tpl-type" required></label></div><div class="field-grid"><label>Code<input id="tpl-code" maxlength="20" required></label><label>Number format<input id="tpl-prefix" value="LABDOX/TYPE/{{year}}/{{sequence}}" required></label></div><label>Header HTML<textarea id="tpl-header" rows="4" required></textarea></label><label>Footer HTML<textarea id="tpl-footer" rows="3" required></textarea></label><div class="field-grid"><label>Default opening<textarea id="tpl-opening" rows="4"></textarea></label><label>Default closing<textarea id="tpl-closing" rows="4"></textarea></label></div><label>Continuation header HTML<textarea id="tpl-continuation-header" rows="3"></textarea></label><label>Continuation footer HTML<textarea id="tpl-continuation-footer" rows="3"></textarea></label><label>Template CSS<textarea id="tpl-css" rows="5"></textarea></label><div class="field-grid"><label>Margins JSON<input id="tpl-margins" value='{"top":38,"right":22,"bottom":30,"left":22}'></label><label class="check"><input id="tpl-active" type="checkbox" checked> Active template</label></div><div class="action-row"><button class="btn primary" type="submit">Save template</button></div></form></div>
+      </section>
+
+      <section id="users-page" class="page" hidden>
+        <div class="page-heading split"><div><p class="eyebrow">ADMINISTRATION</p><h1>Users</h1><p>Add teammates, manage roles, and reset access.</p></div><button id="new-user" class="btn primary">＋ Add teammate</button></div>
+        <div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr></thead><tbody id="users-table"></tbody></table></div>
+        <form id="user-form" class="template-form" hidden style="margin-top:16px">
+          <div class="panel-head"><div><h3>Add teammate</h3><p>They'll receive a temporary password shown once below - share it securely.</p></div><button type="button" id="close-user">×</button></div>
+          <div class="field-grid"><label>Full name<input id="new-user-name" required></label><label>Email<input id="new-user-email" type="email" required></label></div>
+          <label>Role<select id="new-user-role"><option value="issuer">Issuer</option><option value="admin">Admin</option></select></label>
+          <div class="action-row"><button class="btn primary" type="submit">Create account</button></div>
+          <p id="new-user-result" class="demo-note" hidden></p>
+        </form>
+      </section>
+    </main>
+  </div>
+  <dialog id="confirm-dialog"><form method="dialog"><h3 id="dialog-title">Finalise this letter?</h3><p id="dialog-copy">A unique document number will be assigned and this version will be locked.</p><div class="action-row"><button value="cancel" class="btn secondary">Cancel</button><button value="confirm" class="btn dark">Confirm</button></div></form></dialog>
+  <dialog id="password-dialog">
+    <form id="password-form">
+      <h3>Change your password</h3>
+      <p id="password-intro" class="muted">Choose a new password. It must be at least 10 characters.</p>
+      <label>Current password<input id="pw-current" type="password" autocomplete="current-password" required></label>
+      <label>New password<input id="pw-new" type="password" autocomplete="new-password" minlength="10" required></label>
+      <p id="password-error" class="form-error" hidden></p>
+      <div class="action-row"><button type="button" id="password-cancel" class="btn secondary">Cancel</button><button class="btn dark" type="submit">Update password</button></div>
+    </form>
+  </dialog>
+<dialog id="versions-dialog"><div class="panel-head"><h3>Document versions</h3><button id="close-versions" type="button">Close</button></div><div id="versions-list"></div><iframe id="version-preview" title="Saved version" sandbox="allow-scripts"></iframe></dialog>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

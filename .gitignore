@@ -1,0 +1,15 @@
+node_modules/
+.wrangler/
+.local-config/
+dist/
+*.log
+
+.local-data/
+.test-data-*/
+.dev.vars*
+.env*
+wrangler.production.toml
+playwright-report/
+test-results/
+work/
+dist/
