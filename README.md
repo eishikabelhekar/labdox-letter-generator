@@ -34,7 +34,7 @@ Extremely tall indivisible images or oversized headers/footers produce a renderi
 
 See [DEPLOYMENT.md](DEPLOYMENT.md) for company-owned deployment and acceptance steps. The no-card pilot binds `DB` (D1) and `BROWSER` (Browser Run), alongside Worker static assets. PDFs and uploaded images are stored as D1 chunks. The source has no ChatGPT-site dependency. An optional `FILES` R2 binding remains supported in code for a later production migration.
 
-Cloudflare deployment is not completed merely by extracting this ZIP. The included `wrangler.toml` names the dedicated D1 database created in the current Cloudflare account. Migrations, first-admin secrets and the Worker deployment must still be completed. D1 Free has a 500 MB per-database limit; this pilot also caps each stored file at 20 MB.
+The no-card pilot is deployed at [labdox-letter-generator.eishika.workers.dev](https://labdox-letter-generator.eishika.workers.dev). Its dedicated D1 database has all seven migrations applied. The first-admin login and logout work; the owner must change the temporary password, after which the bootstrap secret should be removed. Full live document and PDF acceptance is still pending. D1 Free has a 500 MB per-database limit; this pilot also caps each stored file at 20 MB.
 
 ## Source map
 

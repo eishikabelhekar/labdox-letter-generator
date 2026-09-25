@@ -4,7 +4,7 @@ This source runs independently of chatgpt.site. The existing interface is retain
 
 ## Current account state
 
-The dedicated D1 database `labdox-letter-generator` has been created in Eishika@labdox.in's Cloudflare account with UUID `6a5b8bd7-37ba-4ac3-bd77-fb3c2b751ec5`. The migrations and Worker have not yet been deployed. The separate pre-existing Worker `labdox-document-generator` was not changed. No local documents are migrated automatically.
+The dedicated D1 database `labdox-letter-generator` in Eishika@labdox.in's Cloudflare account has UUID `6a5b8bd7-37ba-4ac3-bd77-fb3c2b751ec5`. All seven migrations are applied, and the Worker is deployed at [labdox-letter-generator.eishika.workers.dev](https://labdox-letter-generator.eishika.workers.dev). The admin bootstrap secrets are set, and live login and logout passed. The owner must change the temporary password, then remove `INITIAL_ADMIN_PASSWORD`; full live document and PDF acceptance is still pending. The separate pre-existing Worker `labdox-document-generator` was not changed. No local documents are migrated automatically.
 
 ## Deploy
 
@@ -19,7 +19,7 @@ npx wrangler whoami
 npx wrangler d1 migrations apply labdox-letter-generator --remote
 npx wrangler secret put INITIAL_ADMIN_EMAIL
 npx wrangler secret put INITIAL_ADMIN_PASSWORD
-npx wrangler deploy
+npm run deploy
 ```
 
 Enter the intended admin email and a unique temporary password of at least 12 characters at the interactive secret prompts. Keep them out of chat and Git. If Wrangler asks to create the named Worker when setting its first secret, use `labdox-letter-generator`. Open the returned `workers.dev` URL, sign in, and change the password. Then remove the temporary secret:
