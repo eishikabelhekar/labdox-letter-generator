@@ -1,5 +1,5 @@
 // Local development adapter: the same Worker handlers, persistent SQLite/files, Chromium PDF.
-// Production uses the real Cloudflare D1/R2/Browser bindings in wrangler.toml.
+// The no-card pilot uses Cloudflare D1 and Browser Run; an optional FILES binding supports R2 later.
 import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';
