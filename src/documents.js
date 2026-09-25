@@ -1,6 +1,7 @@
 import { audit, cleanText, HttpError, id, json, now, validateDocument } from './utils.js';
 import { renderDocument, snapshot } from './render.js';
 import { embedAssets } from './assets.js';
+import { fileStore } from './file-store.js';
 
 async function context(env, data) {
   const template = await env.DB.prepare('SELECT * FROM templates WHERE id=? AND is_active=1').bind(data.template_id).first();
@@ -115,23 +116,23 @@ export async function previewDocument(request,env,user,documentId,version) {
 }
 export async function generatePdf(request,env,user,documentId,version) {
   const doc=await getDocument(env,user,documentId), saved=await getVersion(env,user,documentId,version || doc.current_version);
-  if (saved.pdf_object_key && await env.FILES.head(saved.pdf_object_key)) return json({id:doc.id,ready:true,version:saved.version_number});
+  if (saved.pdf_object_key && await fileStore(env).head(saved.pdf_object_key)) return json({id:doc.id,ready:true,version:saved.version_number});
   if (!env.BROWSER) throw new HttpError('Server PDF rendering is not configured. Configure the Cloudflare browser binding.',503);
   const response=await env.BROWSER.quickAction('pdf',{html:saved.rendered_html,waitForSelector:{selector:'body[data-render-ready="true"]',timeout:30000},pdfOptions:{format:'a4',printBackground:true,preferCSSPageSize:true}});
   if (!response.ok) throw new HttpError('PDF service unavailable. Your saved document is safe; retry generation.',503);
   const pdf=await response.arrayBuffer();
   if (new TextDecoder().decode(pdf.slice(0,5))!=='%PDF-') throw new HttpError('PDF service returned an invalid file.',503);
   const key=`documents/${doc.id}/v${saved.version_number}/${id('pdf')}.pdf`;
-  await env.FILES.put(key,pdf,{httpMetadata:{contentType:'application/pdf'}});
+  await fileStore(env).put(key,pdf,{httpMetadata:{contentType:'application/pdf'}});
   const result=await env.DB.prepare('UPDATE document_versions SET pdf_object_key=? WHERE document_id=? AND version_number=? AND pdf_object_key IS ?').bind(key,doc.id,saved.version_number,saved.pdf_object_key).run();
-  if (!result.meta.changes) await env.FILES.delete(key);
+  if (!result.meta.changes) await fileStore(env).delete(key);
   await env.DB.prepare(`UPDATE documents SET pdf_object_key=(SELECT pdf_object_key FROM document_versions WHERE document_id=? AND version_number=?) WHERE id=? AND current_version=?`).bind(doc.id,saved.version_number,doc.id,saved.version_number).run();
   await audit(env,request,user.id,'pdf.generated','document',doc.id,{version:saved.version_number});
   return json({id:doc.id,ready:true,version:saved.version_number});
 }
 export async function downloadPdf(request,env,user,documentId,version) {
   const doc=await getDocument(env,user,documentId), saved=await getVersion(env,user,documentId,version || doc.current_version);
-  const object=saved.pdf_object_key && await env.FILES.get(saved.pdf_object_key);
+  const object=saved.pdf_object_key && await fileStore(env).get(saved.pdf_object_key);
   if (!object) throw new HttpError('Generate this version’s PDF first.',409);
   await audit(env,request,user.id,'pdf.downloaded','document',doc.id,{version:saved.version_number});
   const name=(doc.document_number || doc.recipient_name).replace(/[^a-z0-9_-]+/gi,'-');

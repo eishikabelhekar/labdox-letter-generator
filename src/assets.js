@@ -1,4 +1,5 @@
 import { audit, cleanText, HttpError, id, json } from './utils.js';
+import { fileStore } from './file-store.js';
 
 export async function listAssets(env) {
   return json({ assets: (await env.DB.prepare('SELECT id,name,mime_type,size,created_at FROM assets ORDER BY created_at DESC').all()).results });
@@ -12,7 +13,7 @@ export async function uploadAsset(request, env, user) {
   if (!png && !jpeg) throw new HttpError('Only PNG and JPEG images are supported.', 422);
   const assetId = id('asset'), objectKey = `assets/${assetId}`, mime = png ? 'image/png' : 'image/jpeg';
   const name = cleanText(new URL(request.url).searchParams.get('name'), 160) || 'Brand asset';
-  await env.FILES.put(objectKey, bytes, { httpMetadata: { contentType: mime } });
+  await fileStore(env).put(objectKey, bytes, { httpMetadata: { contentType: mime } });
   await env.DB.prepare('INSERT INTO assets (id,name,mime_type,object_key,size,created_by) VALUES (?,?,?,?,?,?)')
     .bind(assetId,name,mime,objectKey,bytes.length,user.id).run();
   await audit(env, request,user.id,'asset.uploaded','asset',assetId);
@@ -21,7 +22,7 @@ export async function uploadAsset(request, env, user) {
 
 export async function getAsset(env, assetId) {
   const row = await env.DB.prepare('SELECT * FROM assets WHERE id=?').bind(assetId).first();
-  const object = row && await env.FILES.get(row.object_key);
+  const object = row && await fileStore(env).get(row.object_key);
   if (!object) throw new HttpError('Asset not found.',404);
   return new Response(object.body, { headers: { 'content-type': row.mime_type, 'cache-control':'private, no-store' } });
 }
