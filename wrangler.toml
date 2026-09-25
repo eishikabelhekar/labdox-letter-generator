@@ -9,15 +9,14 @@ binding = "ASSETS"
 not_found_handling = "single-page-application"
 run_worker_first = ["/api/*"]
 
+# Dedicated D1 database for the no-card pilot.
 [[d1_databases]]
 binding = "DB"
 database_name = "labdox-letter-generator"
 database_id = "6a5b8bd7-37ba-4ac3-bd77-fb3c2b751ec5"
 migrations_dir = "migrations"
 
-[[r2_buckets]]
-binding = "FILES"
-bucket_name = "labdox-letter-files"
+# No R2 binding in the no-card pilot. PDFs and images use D1 file_objects.
 
 [browser]
 binding = "BROWSER"

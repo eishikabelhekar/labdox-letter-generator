@@ -1,71 +1,51 @@
-# Company-owned Cloudflare deployment
+# Cloudflare no-card pilot deployment
 
-This source does not depend on chatgpt.site or an OpenAI runtime. The existing design is retained. Production uses a Worker serving static HTML/CSS/JavaScript, D1 for records, R2 for PDFs/images, and Browser Run for server-side PDF generation.
+This source runs independently of chatgpt.site. The existing interface is retained. The no-card pilot uses a Cloudflare Worker for the frontend and API, D1 for records and stored PDF/image chunks, and Browser Run for server-side PDF rendering. It intentionally does not bind R2 because enabling R2 on this account requires billing setup. This differs from the PRD's R2 storage architecture and should be revisited before broad production use.
 
-## What is ready, and what still requires account access
+## Current account state
 
-The application and database migrations are implemented and tested locally. No remote database, bucket, Worker or domain has been provisioned in this delivery. The machine was not authenticated to Cloudflare at review time. Do not describe the local build as a production deployment.
+The dedicated D1 database `labdox-letter-generator` has been created in Eishika@labdox.in's Cloudflare account with UUID `6a5b8bd7-37ba-4ac3-bd77-fb3c2b751ec5`. The migrations and Worker have not yet been deployed. The separate pre-existing Worker `labdox-document-generator` was not changed. No local documents are migrated automatically.
 
-The exact current chatgpt.site URL and its deployed backend are still needed if existing data must be migrated. Do not replace an existing database or assume the ZIP contains live records.
+## Deploy
 
-## Deploy a fresh environment
-
-Use Node.js 24 or newer. Run these commands from the application directory. Use the company's Cloudflare account and separate resource names for staging and production.
+Use Node.js 24 or newer in the company account. Run these commands from this application directory:
 
 ```powershell
 npm ci
 npm run check
-npm run build
 npm run test:worker
-npx wrangler login
+npx wrangler login --device
 npx wrangler whoami
-npx wrangler d1 create labdox-letter-generator
-npx wrangler r2 bucket create labdox-letter-files
+npx wrangler d1 migrations apply labdox-letter-generator --remote
+npx wrangler secret put INITIAL_ADMIN_EMAIL
+npx wrangler secret put INITIAL_ADMIN_PASSWORD
+npx wrangler deploy
 ```
 
-Take the actual UUID printed by `d1 create`, then run:
+Enter the intended admin email and a unique temporary password of at least 12 characters at the interactive secret prompts. Keep them out of chat and Git. If Wrangler asks to create the named Worker when setting its first secret, use `labdox-letter-generator`. Open the returned `workers.dev` URL, sign in, and change the password. Then remove the temporary secret:
 
 ```powershell
-node scripts/configure-cloudflare.mjs <D1-UUID> labdox-letter-files
-npx wrangler d1 migrations apply labdox-letter-generator --remote --config wrangler.production.toml
-npx wrangler secret put INITIAL_ADMIN_EMAIL --config wrangler.production.toml
-npx wrangler secret put INITIAL_ADMIN_PASSWORD --config wrangler.production.toml
-npx wrangler deploy --config wrangler.production.toml
+npx wrangler secret delete INITIAL_ADMIN_PASSWORD
 ```
 
-Enter the intended admin email and a unique initial password of at least 12 characters at the interactive secret prompts. Do not put secrets in source control or chat. If Wrangler asks to create the named Worker when setting its first secret, use the intended company Worker. The browser binding must be available in that account. Confirm current Browser Run billing/limits in the company dashboard before using it for production.
+The Worker, D1 and Browser Run free tiers have separate usage limits. D1 Free allows up to 500 MB per database; stored PDFs and logos count toward it. This pilot caps each file at 20 MB. Browser Run Free provides 10 minutes of browser time per day. Exceeding free limits can stop new requests or PDF generation until the limits reset. Monitor usage in Cloudflare.
 
-Open the returned workers.dev URL. Sign in with the configured initial administrator, change the password, and add real users. There are no automatically provisioned public demo credentials. Once the administrator exists and has changed the password, remove the initial password secret:
+## Cloud acceptance
 
-```powershell
-npx wrangler secret delete INITIAL_ADMIN_PASSWORD --config wrangler.production.toml
-```
+1. Log in as the admin, change the temporary password, and add two issuer users.
+2. Verify that each issuer cannot access the other's documents, versions, PDFs or assets.
+3. Save and finalise a draft, generate a PDF, and confirm that `file_objects` and `file_chunks` contain it and authenticated download works.
+4. Edit a template and confirm earlier issued versions remain unchanged.
+5. Upload a logo and generate a long multi-page letter with continuation headers and footers.
+6. Log out and back in, then redeploy the same Worker against the same D1 database. Confirm drafts, users, templates, versions and PDFs remain available.
+7. Restore a prior version as a linked new draft, leaving the original unchanged.
 
-Add the company domain through the Worker's Domains & Routes settings. Verify HTTPS, role restrictions, PDF generation and persistence there before releasing it to staff.
+The local workflow and Miniflare tests exercise the application, migrations, D1 file storage and PDF output. Cloud acceptance must still verify the real D1 and Browser Run bindings.
 
-## Required cloud acceptance
+## Data and future R2 migration
 
-1. Admin creates two issuers. Each issuer can access only their own records; direct access to another issuer's document/version/PDF is denied.
-2. Save a draft, edit it, and click Finalise without manually saving again. The final snapshot and downloaded PDF must contain the latest edits.
-3. Generate a PDF. Confirm a PDF object in R2 and its key in D1. Confirm it downloads only after authentication.
-4. Edit the template and generate/download the earlier issued PDF again. The issued version must remain unchanged.
-5. Create and edit a template, upload a logo, and verify continuation headers/footers in a long letter.
-6. Log out/in and redeploy the same Worker against the same D1/R2 bindings. Confirm all records and PDFs remain retrievable.
-7. Restore an older saved version as a linked new draft. Confirm the original version remains intact.
+Back up D1 before applying future migrations: `npx wrangler d1 export labdox-letter-generator --remote --output backup.sql`. Store the backup privately; it contains document records and PDF/image bytes. Preserve migration history and the database UUID across releases. Cloudflare's D1 Time Travel is useful for short-term recovery but does not replace an external backup.
 
-The automated local workflow verifies equivalent application behavior with persistent SQLite/file adapters and real headless Chromium. It is not a substitute for verifying account-specific D1/R2/Browser Run integration.
+R2 remains the intended long-term file store in the PRD. When the organization accepts its billing setup, provision a bucket, migrate existing D1 file objects to it, add a `FILES` binding, and verify old PDF/image downloads before removing D1 file data. Do not add the binding without migrating existing files, because the application selects R2 when `FILES` is present.
 
-## Existing data and releases
-
-- Back up D1 before applying new migrations: `npx wrangler d1 export labdox-letter-generator --remote --output backup.sql --config wrangler.production.toml`. Store that backup privately.
-- Preserve existing migration history. The `migrations/` folder is authoritative; do not rerun old seed files. Migration 0006 carries older sequence counters forward into shared numbering formats.
-- Older issued snapshots are retained. Older drafts gain a baseline version when opened through the version/preview API; earlier overwritten drafts cannot be reconstructed.
-- Keep the same production database UUID and R2 bucket across releases. Deploying code does not copy local development data or change cloud data automatically.
-- R2 object backups need a separately configured company backup destination/process. Keep the D1 backup and referenced R2 objects together; D1 alone does not contain PDF binaries.
-- Do not delete production resources during rollback. Roll back Worker code only when it is compatible with the migrated schema. Test restoration in staging.
-
-## Validation environment note
-
-The standalone bundle builds with `npm run build` and has passed the workflow tests. Native Wrangler dry-run was blocked by Windows sandbox access to an ancestor directory in this session. Wrangler's local D1 migration application succeeded. Run the deployment command in the authenticated company environment and retain its output as the actual cloud deployment evidence.
-
-Cloudflare reference: [Worker Quick Actions](https://developers.cloudflare.com/browser-run/quick-actions/) and [PDF generation](https://developers.cloudflare.com/browser-run/quick-actions/pdf-endpoint/).
+The exact chatgpt.site deployment and backend are still needed if historical data there must be migrated. Do not assume this source ZIP contains those live records.

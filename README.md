@@ -13,7 +13,7 @@ npm start
 
 Open http://localhost:8787. The initial local login is generated on your machine in `.local-data/initial-admin.json`. Change that password on first login. No shared default password is included. Stop the server with Ctrl+C; use `START.bat` for later runs.
 
-Local mode runs the same application handlers with a persistent SQLite database, a local file-store adapter and headless Chromium PDF rendering. It does not claim to be cloud D1/R2. Data survives server restarts in `.local-data/`; back up that folder while the server is stopped. Deleting it removes local data. `CHROME_PATH` can specify an installed Chromium browser if automatic detection fails.
+Local mode runs the same application handlers with a persistent SQLite database, a local file-store adapter and headless Chromium PDF rendering. It does not claim to be cloud D1. Data survives server restarts in `.local-data/`; back up that folder while the server is stopped. Deleting it removes local data. `CHROME_PATH` can specify an installed Chromium browser if automatic detection fails.
 
 ## What works
 
@@ -32,9 +32,9 @@ Extremely tall indivisible images or oversized headers/footers produce a renderi
 
 ## Cloudflare
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for company-owned deployment and acceptance steps. Production bindings are `DB` (D1), `FILES` (R2) and `BROWSER` (Browser Run), alongside Worker static assets. The source has no ChatGPT-site dependency.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for company-owned deployment and acceptance steps. The no-card pilot binds `DB` (D1) and `BROWSER` (Browser Run), alongside Worker static assets. PDFs and uploaded images are stored as D1 chunks. The source has no ChatGPT-site dependency. An optional `FILES` R2 binding remains supported in code for a later production migration.
 
-Cloudflare deployment is not completed merely by extracting this ZIP. A company account login, real database UUID/bucket and first-admin secrets are required. The included configuration intentionally contains a database-ID placeholder until those resources are chosen.
+Cloudflare deployment is not completed merely by extracting this ZIP. The included `wrangler.toml` names the dedicated D1 database created in the current Cloudflare account. Migrations, first-admin secrets and the Worker deployment must still be completed. D1 Free has a 500 MB per-database limit; this pilot also caps each stored file at 20 MB.
 
 ## Source map
 
